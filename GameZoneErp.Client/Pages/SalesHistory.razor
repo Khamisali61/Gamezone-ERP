@@ -1,0 +1,70 @@
+@page "/sales"
+@using GameZoneErp.Shared.Entities
+@inject HttpClient Http
+
+<PageTitle>Sales History</PageTitle>
+
+<div class="container-fluid">
+    <h3>Sales History</h3>
+
+    @if (sales == null)
+    {
+        <p>Loading sales...</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Date</th>
+                    <th>User</th>
+                    <th>Payment Method</th>
+                    <th>Total</th>
+                    <th>Items</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sale in sales)
+                {
+                    <tr>
+                        <td>@sale.Id</td>
+                        <td>@sale.Date.ToShortDateString() @sale.Date.ToShortTimeString()</td>
+                        <td>User @sale.UserId</td>
+                        <td>@sale.PaymentMethod</td>
+                        <td>$@sale.TotalAmount</td>
+                        <td>
+                           @if (sale.SaleItems != null)
+                           {
+                               <ul>
+                               @foreach(var item in sale.SaleItems)
+                               {
+                                   <li>Product @item.ProductId (x@item.Quantity)</li>
+                               }
+                               </ul>
+                           }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Sale>? sales;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Note: Assuming the API supports GET /api/sales and returns a list
+            // The generated controller should support this.
+            sales = await Http.GetFromJsonAsync<List<Sale>>("api/sales");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

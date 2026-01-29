@@ -1,0 +1,90 @@
+@page "/zreport"
+@inject HttpClient Http
+@using GameZoneErp.Shared.Entities
+
+<PageTitle>End of Day (Z-Report)</PageTitle>
+
+<div class="container mt-4">
+    <h2>End of Day Report</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            Actions
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary" @onclick="FetchReport">Generate Report (Preview)</button>
+            <button class="btn btn-danger ms-2" @onclick="CloseShift">Close Shift (Z-Report)</button>
+        </div>
+    </div>
+
+    @if (report != null)
+    {
+        <div class="card">
+            <div class="card-header bg-light">
+                <h4 class="mb-0">Shift Summary</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-success">
+                            <h6>Total Sales</h6>
+                            <h3>$@report.TotalSales</h3>
+                        </div>
+                    </div>
+                </div>
+                <hr />
+                <p><strong>Closed At:</strong> @report.Date</p>
+                <p><strong>Closed By:</strong> @report.ClosedByUserId</p>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-info mt-3">@message</div>
+    }
+</div>
+
+@code {
+    private ShiftClosure? report;
+    private string? message;
+
+    private async Task FetchReport()
+    {
+        try
+        {
+            // Simulate fetching current shift stats (Not implemented in backend yet, reusing Z-Report logic)
+            // For now, let's just show a message or try to hit the endpoint without closing.
+            // The backend endpoint is POST /api/reports/endofday which closes it.
+            // We might need a GET /api/reports/currentshift for preview.
+            // Since I haven't implemented preview, I'll just warn the user.
+            message = "Preview not available. Click 'Close Shift' to generate and close.";
+        }
+        catch(Exception ex)
+        {
+            message = "Error: " + ex.Message;
+        }
+    }
+
+    private async Task CloseShift()
+    {
+        try
+        {
+            // Assuming 1 is the admin user ID for now
+            var response = await Http.PostAsync("api/reports/endofday?userId=1", null);
+            if (response.IsSuccessStatusCode)
+            {
+                report = await response.Content.ReadFromJsonAsync<ShiftClosure>();
+                message = "Shift closed successfully.";
+            }
+            else
+            {
+                message = "Failed to close shift: " + await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Error: " + ex.Message;
+        }
+    }
+}

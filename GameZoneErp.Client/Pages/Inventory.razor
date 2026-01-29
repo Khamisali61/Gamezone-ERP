@@ -1,0 +1,64 @@
+@page "/inventory"
+@using GameZoneErp.Shared.Entities
+@using GameZoneErp.Shared.Enums
+@inject HttpClient Http
+
+<PageTitle>Inventory</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Inventory</h3>
+        <button class="btn btn-primary">Add Product</button>
+    </div>
+
+    @if (products == null)
+    {
+        <p>Loading products...</p>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Cost</th>
+                    <th>Price</th>
+                    <th>Type</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    <tr>
+                        <td>@product.Name</td>
+                        <td>@product.CategoryId</td>
+                        <td>$@product.CostPrice</td>
+                        <td>$@product.SalePrice</td>
+                        <td>@product.Type</td>
+                        <td>
+                            @if (product.Type == ProductType.Standard)
+                            {
+                                @product.StockQuantity
+                            }
+                            else
+                            {
+                                <span class="badge bg-info">Service</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Product>? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Http.GetFromJsonAsync<List<Product>>("api/products");
+    }
+}

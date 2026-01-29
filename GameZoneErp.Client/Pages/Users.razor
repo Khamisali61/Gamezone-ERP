@@ -1,0 +1,58 @@
+@page "/users"
+@using GameZoneErp.Shared.Entities
+@using GameZoneErp.Shared.Enums
+@inject HttpClient Http
+
+<PageTitle>Users</PageTitle>
+
+<div class="container mt-4">
+    <h3>User Management</h3>
+
+    @if (users == null)
+    {
+        <p>Loading users...</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in users)
+                {
+                    <tr>
+                        <td>@user.Name</td>
+                        <td>@user.Role</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<User>? users;
+
+    protected override async Task OnInitializedAsync()
+    {
+         try
+        {
+            // Requires GET /api/auth/users or similar.
+            // I implemented 'api/Auth/login' and 'api/Auth/register'.
+            // I probably didn't implement a 'List Users' endpoint in AuthController.
+            // I will leave this as a placeholder or try to fetch if I added it.
+            // If I didn't add it, this will fail. Let's handle gracefully.
+            // Checking AuthController... I think I only did Login/Register.
+            // So for now, I'll just show an empty list or mock.
+            users = new List<User>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+}

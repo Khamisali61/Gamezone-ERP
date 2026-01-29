@@ -113,3 +113,14 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Dashboard Tiles */
+.dashboard-tile {
+    cursor: pointer;
+    transition: transform 0.2s;
+    border: none;
+}
+.dashboard-tile:hover {
+    transform: scale(1.05);
+    opacity: 0.95;
+}
