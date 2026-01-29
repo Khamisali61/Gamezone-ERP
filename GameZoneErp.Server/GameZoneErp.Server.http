@@ -1,0 +1,6 @@
+@GameZoneErp.Server_HostAddress = http://localhost:5106
+
+GET {{GameZoneErp.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

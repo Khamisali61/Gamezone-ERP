@@ -1,0 +1,229 @@
+@page "/pos"
+@using GameZoneErp.Shared.Entities
+@using GameZoneErp.Shared.Enums
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>POS</PageTitle>
+
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Left Panel: Catalog -->
+        <div class="col-md-8 p-3" style="overflow-y: auto; height: 100vh;">
+            <h4>Categories</h4>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <button class="btn @(selectedCategoryId == null ? "btn-primary" : "btn-outline-primary") btn-lg"
+                        @onclick="() => FilterProducts(null)">
+                    All
+                </button>
+                @if (categories != null)
+                {
+                    @foreach (var category in categories)
+                    {
+                        <button class="btn @(selectedCategoryId == category.Id ? "btn-primary" : "btn-outline-primary") btn-lg"
+                                @onclick="() => FilterProducts(category.Id)">
+                            @category.Name
+                        </button>
+                    }
+                }
+            </div>
+
+            <h4>Products</h4>
+            <div class="row g-3">
+                @if (filteredProducts != null)
+                {
+                    @foreach (var product in filteredProducts)
+                    {
+                        <div class="col-sm-4 col-md-3">
+                            <div class="card h-100 shadow-sm" @onclick="() => AddToCart(product)" style="cursor: pointer;">
+                                <div class="card-body text-center d-flex flex-column justify-content-center">
+                                    <h5 class="card-title">@product.Name</h5>
+                                    <p class="card-text fw-bold text-success">$@product.SalePrice</p>
+                                    @if(product.Type == ProductType.Standard)
+                                    {
+                                        <small class="text-muted">Stock: @product.StockQuantity</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-info">Service</small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p>Loading products...</p>
+                }
+            </div>
+        </div>
+
+        <!-- Right Panel: Cart -->
+        <div class="col-md-4 bg-light p-3 border-start d-flex flex-column" style="height: 100vh;">
+            <h3 class="mb-3">Current Order</h3>
+
+            <div class="flex-grow-1" style="overflow-y: auto;">
+                @if (cart.Count == 0)
+                {
+                    <p class="text-muted text-center mt-5">Cart is empty</p>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @foreach (var item in cart)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="my-0">@item.Product.Name</h6>
+                                    <small class="text-muted">$@item.Product.SalePrice x @item.Quantity</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => UpdateQuantity(item, -1)">-</button>
+                                    <span>@item.Quantity</span>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => UpdateQuantity(item, 1)">+</button>
+                                    <span class="fw-bold ms-2">$@(item.Product.SalePrice * item.Quantity)</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div class="mt-3 border-top pt-3">
+                <div class="d-flex justify-content-between mb-2">
+                    <h5>Total:</h5>
+                    <h5 class="text-primary">$@TotalAmount</h5>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success btn-lg" disabled="@(cart.Count == 0)" @onclick="Checkout">
+                        Checkout (Cash)
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-2">@errorMessage</div>
+                }
+                 @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success mt-2">@successMessage</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Category>? categories;
+    private List<Product>? allProducts;
+    private List<Product>? filteredProducts;
+    private List<CartItem> cart = new();
+    private int? selectedCategoryId;
+    private string? errorMessage;
+    private string? successMessage;
+
+    private decimal TotalAmount => cart.Sum(i => i.Product.SalePrice * i.Quantity);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categories = await Http.GetFromJsonAsync<List<Category>>("api/categories");
+            allProducts = await Http.GetFromJsonAsync<List<Product>>("api/products");
+            filteredProducts = allProducts;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to load data: " + ex.Message;
+        }
+    }
+
+    private void FilterProducts(int? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        if (categoryId == null)
+        {
+            filteredProducts = allProducts;
+        }
+        else
+        {
+            // If parent categories contain children, logic might need recursion,
+            // but for now relying on direct CategoryId or flat list logic.
+            // Assuming Products refer to leaf categories or the seeded ones.
+            filteredProducts = allProducts?.Where(p => p.CategoryId == categoryId).ToList();
+        }
+    }
+
+    private void AddToCart(Product product)
+    {
+        var existingItem = cart.FirstOrDefault(i => i.Product.Id == product.Id);
+        if (existingItem != null)
+        {
+            existingItem.Quantity++;
+        }
+        else
+        {
+            cart.Add(new CartItem { Product = product, Quantity = 1 });
+        }
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void UpdateQuantity(CartItem item, int change)
+    {
+        item.Quantity += change;
+        if (item.Quantity <= 0)
+        {
+            cart.Remove(item);
+        }
+    }
+
+    private async Task Checkout()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        var sale = new Sale
+        {
+            Date = DateTime.Now,
+            UserId = 1, // Hardcoded for demo (Admin)
+            PaymentMethod = PaymentMethod.Cash,
+            TotalAmount = TotalAmount,
+            SaleItems = cart.Select(i => new SaleItem
+            {
+                ProductId = i.Product.Id,
+                Quantity = i.Quantity,
+                PriceAtSale = i.Product.SalePrice
+            }).ToList()
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/sales", sale);
+            if (response.IsSuccessStatusCode)
+            {
+                cart.Clear();
+                successMessage = "Sale completed successfully!";
+                // Refresh products to show updated stock
+                allProducts = await Http.GetFromJsonAsync<List<Product>>("api/products");
+                FilterProducts(selectedCategoryId);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = "Checkout failed: " + error;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error: " + ex.Message;
+        }
+    }
+
+    public class CartItem
+    {
+        public Product Product { get; set; } = new();
+        public int Quantity { get; set; }
+    }
+}
